@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>One Week CMS Scraper</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #61707f;
+      --line: #d9e1e8;
+      --surface: #f7f9fb;
+      --panel: #ffffff;
+      --blue: #155fbf;
+      --blue-dark: #0c438c;
+      --green: #20744a;
+      --orange: #a35413;
+      --red: #b3261e;
+      --shadow: 0 14px 36px rgba(23, 32, 42, 0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        linear-gradient(180deg, rgba(21, 95, 191, 0.08), rgba(32, 116, 74, 0.04) 44%, transparent 78%),
+        var(--surface);
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.88);
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .status-pill {
+      min-width: 116px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      text-align: center;
+      color: var(--muted);
+      background: #fff;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    main {
+      padding: 28px 0 42px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #283848;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 11px 12px;
+      color: var(--ink);
+      background: #fff;
+      font: 14px/1.45 Consolas, "Courier New", monospace;
+      outline: none;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(21, 95, 191, 0.14);
+    }
+
+    textarea {
+      min-height: 238px;
+      resize: vertical;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      min-height: 40px;
+      padding: 0 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #e9eef4;
+      color: var(--ink);
+    }
+
+    button.primary {
+      color: #fff;
+      background: var(--blue);
+    }
+
+    button.primary:hover { background: var(--blue-dark); }
+    button.success { color: #fff; background: var(--green); }
+    button.warn { color: #fff; background: var(--orange); }
+    button:disabled { cursor: not-allowed; opacity: 0.58; }
+
+    .small {
+      min-height: 34px;
+      padding: 0 11px;
+      font-size: 12px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .bar {
+      overflow: hidden;
+      height: 10px;
+      border-radius: 999px;
+      background: #e5ebf1;
+    }
+
+    .bar span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      transition: width 180ms ease;
+    }
+
+    .results-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 360px;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .result {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .result-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfd;
+    }
+
+    .result-title strong {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      background: #eef3f8;
+    }
+
+    .badge.ok {
+      color: var(--green);
+      background: #e8f5ee;
+    }
+
+    .badge.fail {
+      color: var(--red);
+      background: #fcebea;
+    }
+
+    .result-body {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    pre {
+      max-height: 260px;
+      overflow: auto;
+      margin: 0;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #e3e9ef;
+      background: #f7f9fb;
+      color: #263544;
+      font: 12px/1.45 Consolas, "Courier New", monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    details {
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--blue-dark);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .advanced {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .alert {
+      border-left: 4px solid var(--orange);
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #5b370f;
+      background: #fff5e8;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .status-pill { text-align: left; }
+      .results-head { align-items: flex-start; flex-direction: column; }
+      .summary { white-space: normal; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap topbar">
+      <h1>One Week CMS Scraper</h1>
+      <div class="status-pill" id="state">Ready</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-body stack">
+          <label>
+            Week folder name
+            <input id="weekName" value="week-1" autocomplete="off">
+          </label>
+
+          <label>
+            CMS links
+            <textarea id="links" spellcheck="false" placeholder="https://cms.apps.ischooltech.com/.../t1&#10;https://cms.apps.ischooltech.com/.../t2"></textarea>
+          </label>
+
+          <div class="toolbar">
+            <button class="primary" id="scrapeBtn" type="button">Scrape Week</button>
+            <button type="button" id="clearBtn">Clear</button>
+          </div>
+
+          <div class="bar" aria-hidden="true"><span id="progressBar"></span></div>
+          <div class="meta" id="progressText">0 links queued</div>
+
+          <details>
+            <summary>Advanced fallback</summary>
+            <div class="advanced">
+              <div class="alert" id="corsNote">
+                If both the local scraper and hosted Netlify function are unavailable, paste that page source here and add it to the same week.
+              </div>
+
+              <label>
+                Page URL
+                <input id="pasteUrl" placeholder="https://cms.apps.ischooltech.com/...">
+              </label>
+
+              <label>
+                CMS page HTML
+                <textarea id="pastedHtml" spellcheck="false" placeholder="Paste the page HTML source here"></textarea>
+              </label>
+
+              <label>
+                Optional CORS proxy prefix
+                <input id="proxyPrefix" placeholder="Example: http://127.0.0.1:8787/">
+              </label>
+
+              <div class="toolbar">
+                <button class="warn" type="button" id="addPastedBtn">Add Pasted Page</button>
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-body">
+          <div class="results-head">
+            <h2>Scraped Text</h2>
+            <div class="summary" id="summary">No results yet</div>
+          </div>
+
+          <div class="toolbar" style="margin-bottom: 14px;">
+            <button class="success" id="downloadAllBtn" type="button" disabled>Download Combined TXT</button>
+            <button id="copyAllBtn" type="button" disabled>Copy Combined Text</button>
+          </div>
+
+          <div id="results" class="empty">Paste one week's CMS links to begin.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const els = {
+      state: document.getElementById("state"),
+      weekName: document.getElementById("weekName"),
+      links: document.getElementById("links"),
+      scrapeBtn: document.getElementById("scrapeBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      progressBar: document.getElementById("progressBar"),
+      progressText: document.getElementById("progressText"),
+      results: document.getElementById("results"),
+      summary: document.getElementById("summary"),
+      downloadAllBtn: document.getElementById("downloadAllBtn"),
+      copyAllBtn: document.getElementById("copyAllBtn"),
+      addPastedBtn: document.getElementById("addPastedBtn"),
+      pasteUrl: document.getElementById("pasteUrl"),
+      pastedHtml: document.getElementById("pastedHtml"),
+      proxyPrefix: document.getElementById("proxyPrefix")
+    };
+
+    const state = {
+      items: []
+    };
+
+    const skipTags = new Set(["script", "style", "svg", "noscript", "head", "meta", "link"]);
+    const skipIds = new Set(["loader", "error-box"]);
+    const blockTags = new Set([
+      "div", "p", "br", "li", "ul", "ol", "tr", "table", "section",
+      "article", "header", "footer", "h1", "h2", "h3", "h4", "h5", "h6",
+      "blockquote", "pre", "hr", "td", "th"
+    ]);
+
+    function setBusy(isBusy) {
+      els.scrapeBtn.disabled = isBusy;
+      els.addPastedBtn.disabled = isBusy;
+      els.state.textContent = isBusy ? "Working" : "Ready";
+    }
+
+    function cleanSegment(value) {
+      return String(value || "index").replace(/[^A-Za-z0-9._-]/g, "_") || "index";
+    }
+
+    function topicFromUrl(url) {
+      try {
+        const path = new URL(url).pathname.replace(/\/+$/, "");
+        const parts = path.split("/").filter(Boolean);
+        return cleanSegment(parts[parts.length - 1] || "index");
+      } catch {
+        const parts = String(url).split("?")[0].replace(/\/+$/, "").split("/").filter(Boolean);
+        return cleanSegment(parts[parts.length - 1] || "index");
+      }
+    }
+
+    function normalizeText(raw) {
+      const lines = String(raw)
+        .split("\n")
+        .map(line => line.replace(/[ \t]+/g, " ").trim());
+      const out = [];
+      let blanks = 0;
+      for (const line of lines) {
+        if (line) {
+          out.push(line);
+          blanks = 0;
+        } else {
+          blanks += 1;
+          if (blanks <= 1) out.push("");
+        }
+      }
+      return out.join("\n").trim();
+    }
+
+    function walk(node, out) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        out.push(node.nodeValue.trim() ? node.nodeValue : " ");
+        return;
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+      const tag = node.tagName.toLowerCase();
+      if (skipTags.has(tag) || skipIds.has(node.id)) return;
+
+      if (blockTags.has(tag)) out.push("\n");
+
+      if (tag === "iframe" && node.getAttribute("src")) {
+        out.push("\n[embedded: " + node.getAttribute("src") + "]\n");
+      }
+
+      if (tag === "img" && node.getAttribute("alt")) {
+        out.push("[image: " + node.getAttribute("alt") + "]");
+      }
+
+      for (const child of node.childNodes) walk(child, out);
+
+      if (blockTags.has(tag)) out.push("\n");
+    }
+
+    function extractCmsText(html, url) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const title = (doc.querySelector("title")?.textContent || "").trim();
+      const parts = [];
+      walk(doc.body || doc.documentElement, parts);
+      const text = normalizeText(parts.join(""));
+      const body = (title ? "Title: " + title + "\n" : "") +
+        "URL: " + url + "\n" +
+        "============================================================\n\n" +
+        text + "\n";
+      return { title, text, body };
+    }
+
+    function linkList() {
+      return els.links.value
+        .split(/\s+/)
+        .map(value => value.trim())
+        .filter(value => /^https?:\/\//i.test(value));
+    }
+
+    async function fetchHtml(url) {
+      const prefix = els.proxyPrefix.value.trim();
+      const target = prefix ? prefix + encodeURIComponent(url) : url;
+      const res = await fetch(target, {
+        method: "GET",
+        mode: "cors",
+        credentials: "omit",
+        headers: { "Accept": "text/html,application/xhtml+xml" }
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.text();
+    }
+
+    async function scrapeViaLocalServer(url) {
+      const res = await fetch("/one-week-scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || ("HTTP " + res.status));
+      }
+      return data;
+    }
+
+    async function fetchViaNetlifyFunction(url) {
+      const res = await fetch("/.netlify/functions/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || ("HTTP " + res.status));
+      }
+      return data.html;
+    }
+
+    function updateProgress(done, total) {
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      els.progressBar.style.width = pct + "%";
+      els.progressText.textContent = done + " of " + total + " links processed";
+    }
+
+    function combinedText() {
+      const week = cleanSegment(els.weekName.value || "week");
+      const successful = state.items.filter(item => item.ok);
+      return "# " + week + "\n\n" + successful.map(item => item.body).join("\n\n");
+    }
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    function render() {
+      const ok = state.items.filter(item => item.ok).length;
+      const fail = state.items.length - ok;
+      els.summary.textContent = state.items.length
+        ? ok + " saved, " + fail + " failed"
+        : "No results yet";
+      els.downloadAllBtn.disabled = ok === 0;
+      els.copyAllBtn.disabled = ok === 0;
+
+      if (!state.items.length) {
+        els.results.className = "empty";
+        els.results.textContent = "Paste one week's CMS links to begin.";
+        return;
+      }
+
+      els.results.className = "list";
+      els.results.innerHTML = "";
+
+      state.items.forEach((item, index) => {
+        const box = document.createElement("article");
+        box.className = "result";
+
+        const title = document.createElement("div");
+        title.className = "result-title";
+
+        const strong = document.createElement("strong");
+        strong.textContent = item.title || item.topic || item.url;
+
+        const badge = document.createElement("span");
+        badge.className = "badge " + (item.ok ? "ok" : "fail");
+        badge.textContent = item.ok ? "OK" : "Failed";
+
+        title.append(strong, badge);
+
+        const body = document.createElement("div");
+        body.className = "result-body";
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = item.url;
+
+        const pre = document.createElement("pre");
+        pre.textContent = item.ok ? item.body : item.error;
+
+        body.append(meta, pre);
+
+        if (item.ok) {
+          const actions = document.createElement("div");
+          actions.className = "toolbar";
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "small";
+          btn.textContent = "Download TXT";
+          btn.addEventListener("click", () => {
+            downloadText(item.filename, item.body);
+          });
+          const copy = document.createElement("button");
+          copy.type = "button";
+          copy.className = "small";
+          copy.textContent = "Copy";
+          copy.addEventListener("click", async () => {
+            await navigator.clipboard.writeText(item.body);
+            els.state.textContent = "Copied";
+            setTimeout(() => { els.state.textContent = "Ready"; }, 900);
+          });
+          actions.append(btn, copy);
+          body.append(actions);
+        } else {
+          const actions = document.createElement("div");
+          actions.className = "toolbar";
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "small";
+          btn.textContent = "Use URL In Fallback";
+          btn.addEventListener("click", () => {
+            els.pasteUrl.value = item.url;
+            els.pastedHtml.focus();
+          });
+          actions.append(btn);
+          body.append(actions);
+        }
+
+        box.append(title, body);
+        els.results.append(box);
+      });
+    }
+
+    function addResultFromHtml(url, html) {
+      const parsed = extractCmsText(html, url);
+      const topic = topicFromUrl(url);
+      const filename = cleanSegment(topic) + ".txt";
+      state.items.push({
+        ok: true,
+        url,
+        topic,
+        filename,
+        title: parsed.title,
+        body: parsed.body,
+        chars: parsed.text.length
+      });
+      render();
+    }
+
+    function addResultFromServer(item) {
+      state.items.push({
+        ok: true,
+        url: item.url,
+        topic: item.topic || topicFromUrl(item.url),
+        filename: item.filename || (topicFromUrl(item.url) + ".txt"),
+        title: item.title || "",
+        body: item.body || "",
+        chars: item.chars || 0
+      });
+      render();
+    }
+
+    async function scrapeWeek() {
+      const urls = linkList();
+      state.items = [];
+      render();
+      updateProgress(0, urls.length);
+
+      if (!urls.length) {
+        els.state.textContent = "No links";
+        return;
+      }
+
+      setBusy(true);
+
+      for (let i = 0; i < urls.length; i += 1) {
+        const url = urls[i];
+        try {
+          try {
+            const item = await scrapeViaLocalServer(url);
+            if (item.html) {
+              addResultFromHtml(url, item.html);
+            } else {
+              addResultFromServer(item);
+            }
+          } catch (serverError) {
+            try {
+              const html = await fetchViaNetlifyFunction(url);
+              addResultFromHtml(url, html);
+            } catch (functionError) {
+              const html = await fetchHtml(url);
+              addResultFromHtml(url, html);
+            }
+          }
+        } catch (error) {
+          state.items.push({
+            ok: false,
+            url,
+            topic: topicFromUrl(url),
+            error: "Could not scrape this CMS page.\n\nUse http://127.0.0.1:8000/one-week-cms-scraper.html locally, or deploy this folder to Netlify so /.netlify/functions/scrape can fetch CMS pages without browser CORS.\n\nDetails: " +
+              String(error && error.message ? error.message : error)
+          });
+          render();
+        }
+        updateProgress(i + 1, urls.length);
+      }
+
+      setBusy(false);
+    }
+
+    els.links.addEventListener("input", () => {
+      const count = linkList().length;
+      els.progressText.textContent = count + (count === 1 ? " link queued" : " links queued");
+    });
+
+    els.scrapeBtn.addEventListener("click", scrapeWeek);
+
+    els.clearBtn.addEventListener("click", () => {
+      els.links.value = "";
+      state.items = [];
+      updateProgress(0, 0);
+      els.progressText.textContent = "0 links queued";
+      render();
+    });
+
+    els.addPastedBtn.addEventListener("click", () => {
+      const url = els.pasteUrl.value.trim();
+      const html = els.pastedHtml.value.trim();
+      if (!/^https?:\/\//i.test(url) || !html) {
+        els.state.textContent = "Missing data";
+        return;
+      }
+      addResultFromHtml(url, html);
+      els.pastedHtml.value = "";
+      els.state.textContent = "Added";
+      setTimeout(() => { els.state.textContent = "Ready"; }, 900);
+    });
+
+    els.downloadAllBtn.addEventListener("click", () => {
+      const week = cleanSegment(els.weekName.value || "week");
+      downloadText(week + "-cms-scrape.txt", combinedText());
+    });
+
+    els.copyAllBtn.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(combinedText());
+      els.state.textContent = "Copied";
+      setTimeout(() => { els.state.textContent = "Ready"; }, 900);
+    });
+  </script>
+</body>
+</html>

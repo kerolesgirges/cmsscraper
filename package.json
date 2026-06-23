@@ -1,0 +1,13 @@
+{
+  "name": "one-week-cms-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "One-week CMS scraper for Render.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
