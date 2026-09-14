@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/one-week-scrape",
+      "destination": "/api/scrape"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    }
+  ]
+}
