@@ -439,6 +439,20 @@
       return String(value || "index").replace(/[^A-Za-z0-9._-]/g, "_") || "index";
     }
 
+    function safeFilename(value, fallback = "page") {
+      let name = String(value || fallback)
+        .normalize("NFC")
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_")
+        .trim()
+        .replace(/[. ]+$/g, "")
+        .slice(0, 180);
+      if (!name) name = fallback;
+      if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(name)) {
+        name = "_" + name;
+      }
+      return name;
+    }
+
     function topicFromUrl(url) {
       try {
         const path = new URL(url).pathname.replace(/\/+$/, "");
@@ -767,7 +781,7 @@
       const parsed = extractCmsText(html, url);
       const topic = topicFromUrl(url);
       const filename = cleanSegment(topic) + ".txt";
-      const htmlFilename = cleanSegment(topic) + ".html";
+      const htmlFilename = safeFilename(parsed.title, topic) + ".html";
       state.items.push({
         ok: true,
         url,
