@@ -387,7 +387,7 @@
 
           <div class="toolbar" style="margin-bottom: 14px;">
             <button class="success" id="downloadAllBtn" type="button" disabled>Download Combined TXT</button>
-            <button class="success" id="downloadHtmlFilesBtn" type="button" disabled>Download All HTML Files</button>
+            <button class="success" id="downloadHtmlFilesBtn" type="button" disabled>Download HTML Folder (.zip)</button>
             <button id="copyAllBtn" type="button" disabled>Copy Combined Text</button>
           </div>
 
@@ -583,6 +583,88 @@
 
     function downloadHtml(filename, html) {
       downloadFile(filename, html, "text/html;charset=utf-8");
+    }
+
+    function crc32(bytes) {
+      let crc = 0xffffffff;
+      for (const byte of bytes) {
+        crc ^= byte;
+        for (let bit = 0; bit < 8; bit += 1) {
+          crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+        }
+      }
+      return (crc ^ 0xffffffff) >>> 0;
+    }
+
+    function zipHeader(size) {
+      return new Uint8Array(size);
+    }
+
+    function uniqueFilename(filename, used) {
+      const dot = filename.lastIndexOf(".");
+      const stem = dot > 0 ? filename.slice(0, dot) : filename;
+      const extension = dot > 0 ? filename.slice(dot) : "";
+      let candidate = filename;
+      let copy = 2;
+      while (used.has(candidate.toLowerCase())) {
+        candidate = stem + "-" + copy + extension;
+        copy += 1;
+      }
+      used.add(candidate.toLowerCase());
+      return candidate;
+    }
+
+    function createZip(files) {
+      const encoder = new TextEncoder();
+      const localParts = [];
+      const centralParts = [];
+      let localOffset = 0;
+      let centralSize = 0;
+
+      files.forEach(file => {
+        const name = encoder.encode(file.name);
+        const data = encoder.encode(file.content);
+        const checksum = crc32(data);
+
+        const local = zipHeader(30);
+        const localView = new DataView(local.buffer);
+        localView.setUint32(0, 0x04034b50, true);
+        localView.setUint16(4, 20, true);
+        localView.setUint16(6, 0x0800, true);
+        localView.setUint16(8, 0, true);
+        localView.setUint32(14, checksum, true);
+        localView.setUint32(18, data.length, true);
+        localView.setUint32(22, data.length, true);
+        localView.setUint16(26, name.length, true);
+        localParts.push(local, name, data);
+
+        const central = zipHeader(46);
+        const centralView = new DataView(central.buffer);
+        centralView.setUint32(0, 0x02014b50, true);
+        centralView.setUint16(4, 20, true);
+        centralView.setUint16(6, 20, true);
+        centralView.setUint16(8, 0x0800, true);
+        centralView.setUint16(10, 0, true);
+        centralView.setUint32(16, checksum, true);
+        centralView.setUint32(20, data.length, true);
+        centralView.setUint32(24, data.length, true);
+        centralView.setUint16(28, name.length, true);
+        centralView.setUint32(42, localOffset, true);
+        centralParts.push(central, name);
+
+        localOffset += local.length + name.length + data.length;
+        centralSize += central.length + name.length;
+      });
+
+      const end = zipHeader(22);
+      const endView = new DataView(end.buffer);
+      endView.setUint32(0, 0x06054b50, true);
+      endView.setUint16(8, files.length, true);
+      endView.setUint16(10, files.length, true);
+      endView.setUint32(12, centralSize, true);
+      endView.setUint32(16, localOffset, true);
+
+      return new Blob([...localParts, ...centralParts, end], { type: "application/zip" });
     }
 
     function render() {
@@ -797,10 +879,14 @@
     });
 
     els.downloadHtmlFilesBtn.addEventListener("click", () => {
+      const week = cleanSegment(els.weekName.value || "week");
       const successful = state.items.filter(item => item.ok && typeof item.html === "string");
-      successful.forEach((item, index) => {
-        setTimeout(() => downloadHtml(item.htmlFilename, item.html), index * 150);
-      });
+      const used = new Set();
+      const files = successful.map(item => ({
+        name: week + "/" + uniqueFilename(item.htmlFilename, used),
+        content: item.html
+      }));
+      downloadFile(week + "-cms-html.zip", createZip(files), "application/zip");
     });
 
     els.copyAllBtn.addEventListener("click", async () => {
