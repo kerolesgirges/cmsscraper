@@ -5,18 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>One Week CMS Scraper</title>
   <style>
+    @font-face {
+      font-family: "Somar Rounded";
+      src: url("/assets/fonts/SomarRounded-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Somar Rounded";
+      src: url("/assets/fonts/SomarRounded-SemiBold.ttf") format("truetype");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Somar Rounded";
+      src: url("/assets/fonts/SomarRounded-Bold.ttf") format("truetype");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
     :root {
-      --ink: #17202a;
-      --muted: #61707f;
-      --line: #d9e1e8;
-      --surface: #f7f9fb;
+      --ink: #1f2a56;
+      --muted: #5c7784;
+      --line: #e6edf1;
+      --surface: #f7faff;
       --panel: #ffffff;
-      --blue: #155fbf;
-      --blue-dark: #0c438c;
-      --green: #20744a;
-      --orange: #a35413;
+      --blue: #0669ea;
+      --blue-dark: #043fad;
+      --blue-soft: #e5f2fa;
+      --sky: #05acff;
+      --orange: #ff7d1a;
+      --orange-dark: #f56a00;
+      --yellow: #ffd700;
       --red: #b3261e;
-      --shadow: 0 14px 36px rgba(23, 32, 42, 0.1);
     }
 
     * { box-sizing: border-box; }
@@ -25,19 +51,19 @@
       margin: 0;
       min-height: 100vh;
       color: var(--ink);
-      font-family: Arial, Helvetica, sans-serif;
-      background:
-        linear-gradient(180deg, rgba(21, 95, 191, 0.08), rgba(32, 116, 74, 0.04) 44%, transparent 78%),
-        var(--surface);
+      font-family: "Somar Rounded", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      background: var(--surface);
     }
 
     header {
       border-bottom: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.88);
+      background: #fff;
     }
 
     .wrap {
-      width: min(1120px, calc(100% - 32px));
+      width: min(1180px, calc(100% - 40px));
       margin: 0 auto;
     }
 
@@ -46,30 +72,129 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      padding: 18px 0;
+      padding: 16px 0;
     }
 
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      line-height: 1.2;
-      letter-spacing: 0;
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--blue);
+      text-decoration: none;
+      font-size: 27px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .brand-mark {
+      position: relative;
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border: 5px solid var(--blue);
+      border-radius: 50% 50% 45% 55%;
+      color: var(--yellow);
+      background: var(--yellow);
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      right: -7px;
+      top: -5px;
+      border-radius: 50%;
+      background: var(--orange);
+    }
+
+    .brand-subtitle {
+      padding-left: 10px;
+      border-left: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
     }
 
     .status-pill {
-      min-width: 116px;
-      padding: 8px 12px;
-      border: 1px solid var(--line);
+      min-width: 104px;
+      padding: 8px 14px;
+      border: 1px solid #cfe2f4;
       border-radius: 999px;
       text-align: center;
-      color: var(--muted);
-      background: #fff;
+      color: var(--blue);
+      background: var(--blue-soft);
       font-size: 13px;
+      font-weight: 600;
       white-space: nowrap;
     }
 
     main {
-      padding: 28px 0 42px;
+      padding: 24px 0 52px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      min-height: 310px;
+      margin-bottom: 24px;
+      border-radius: 24px;
+      background: var(--orange);
+    }
+
+    .hero-copy {
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 48px;
+      color: #fff;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-self: flex-start;
+      margin-bottom: 16px;
+      padding: 6px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    h1 {
+      max-width: 650px;
+      margin: 0;
+      font-size: clamp(38px, 5vw, 62px);
+      font-weight: 700;
+      line-height: 0.98;
+      letter-spacing: -0.025em;
+    }
+
+    .hero-copy p {
+      max-width: 560px;
+      margin: 20px 0 0;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 18px;
+      line-height: 1.55;
+    }
+
+    .hero-art {
+      display: grid;
+      min-height: 310px;
+      place-items: center;
+      padding: 28px 36px 28px 0;
+    }
+
+    .hero-art svg {
+      display: block;
+      width: min(100%, 390px);
+      height: auto;
     }
 
     .grid {
@@ -82,17 +207,42 @@
     .panel {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
+      border-radius: 20px;
     }
 
     .panel-body {
-      padding: 18px;
+      padding: 24px;
     }
 
     .stack {
       display: grid;
-      gap: 14px;
+      gap: 18px;
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .step-number {
+      display: grid;
+      flex: 0 0 34px;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 10px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .panel-heading p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 14px;
     }
 
     label {
@@ -100,25 +250,27 @@
       gap: 7px;
       font-size: 13px;
       font-weight: 700;
-      color: #283848;
+      color: var(--ink);
     }
 
     input,
     textarea {
       width: 100%;
       border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 11px 12px;
+      border-radius: 12px;
+      padding: 12px 14px;
       color: var(--ink);
-      background: #fff;
-      font: 14px/1.45 Consolas, "Courier New", monospace;
+      background: #fbfdff;
+      font: 14px/1.45 "Somar Rounded", system-ui, sans-serif;
       outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
     }
 
     input:focus,
     textarea:focus {
       border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(21, 95, 191, 0.14);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(6, 105, 234, 0.12);
     }
 
     textarea {
@@ -135,13 +287,14 @@
 
     button {
       border: 0;
-      border-radius: 6px;
+      border-radius: 12px;
       min-height: 40px;
-      padding: 0 14px;
-      font-weight: 700;
+      padding: 0 16px;
+      font: 600 14px/1 "Somar Rounded", system-ui, sans-serif;
       cursor: pointer;
-      background: #e9eef4;
-      color: var(--ink);
+      background: var(--blue-soft);
+      color: var(--blue);
+      transition: transform 150ms ease, background 150ms ease, color 150ms ease;
     }
 
     button.primary {
@@ -149,9 +302,11 @@
       background: var(--blue);
     }
 
+    button:hover:not(:disabled) { transform: translateY(-1px); }
     button.primary:hover { background: var(--blue-dark); }
-    button.success { color: #fff; background: var(--green); }
-    button.warn { color: #fff; background: var(--orange); }
+    button.success { color: #fff; background: var(--orange); }
+    button.success:hover { background: var(--orange-dark); }
+    button.warn { color: var(--ink); background: var(--yellow); }
     button:disabled { cursor: not-allowed; opacity: 0.58; }
 
     .small {
@@ -170,14 +325,14 @@
       overflow: hidden;
       height: 10px;
       border-radius: 999px;
-      background: #e5ebf1;
+      background: var(--blue-soft);
     }
 
     .bar span {
       display: block;
       width: 0%;
       height: 100%;
-      background: linear-gradient(90deg, var(--blue), var(--green));
+      background: var(--blue);
       transition: width 180ms ease;
     }
 
@@ -191,7 +346,8 @@
 
     h2 {
       margin: 0;
-      font-size: 18px;
+      font-size: 22px;
+      font-weight: 600;
       line-height: 1.25;
       letter-spacing: 0;
     }
@@ -209,8 +365,8 @@
       color: var(--muted);
       text-align: center;
       border: 1px dashed var(--line);
-      border-radius: 8px;
-      background: #fbfcfd;
+      border-radius: 16px;
+      background: #fbfdff;
     }
 
     .list {
@@ -220,7 +376,7 @@
 
     .result {
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 16px;
       background: #fff;
       overflow: hidden;
     }
@@ -232,7 +388,7 @@
       gap: 12px;
       padding: 12px 14px;
       border-bottom: 1px solid var(--line);
-      background: #fbfcfd;
+      background: var(--blue-soft);
     }
 
     .result-title strong {
@@ -248,12 +404,12 @@
       font-size: 12px;
       font-weight: 700;
       color: var(--muted);
-      background: #eef3f8;
+      background: #edf3f6;
     }
 
     .badge.ok {
-      color: var(--green);
-      background: #e8f5ee;
+      color: var(--blue-dark);
+      background: #ddecff;
     }
 
     .badge.fail {
@@ -272,10 +428,10 @@
       overflow: auto;
       margin: 0;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 12px;
       border: 1px solid #e3e9ef;
-      background: #f7f9fb;
-      color: #263544;
+      background: #f7faff;
+      color: var(--ink);
       font: 12px/1.45 Consolas, "Courier New", monospace;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
@@ -288,7 +444,7 @@
 
     summary {
       cursor: pointer;
-      color: var(--blue-dark);
+      color: var(--blue);
       font-weight: 700;
       font-size: 13px;
     }
@@ -301,35 +457,77 @@
 
     .alert {
       border-left: 4px solid var(--orange);
-      border-radius: 6px;
+      border-radius: 12px;
       padding: 10px 12px;
-      color: #5b370f;
-      background: #fff5e8;
+      color: #6f3c00;
+      background: #fff7d1;
       font-size: 13px;
       line-height: 1.45;
     }
 
     @media (max-width: 860px) {
       .grid { grid-template-columns: 1fr; }
-      .topbar { align-items: flex-start; flex-direction: column; }
-      .status-pill { text-align: left; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-copy { padding: 36px 30px 20px; }
+      .hero-art { min-height: 230px; padding: 0 28px 28px; }
       .results-head { align-items: flex-start; flex-direction: column; }
       .summary { white-space: normal; }
+    }
+
+    @media (max-width: 560px) {
+      .wrap { width: min(100% - 24px, 1180px); }
+      .brand-subtitle { display: none; }
+      .hero { border-radius: 18px; }
+      .hero-copy { padding: 30px 22px 18px; }
+      .hero-copy p { font-size: 16px; }
+      .hero-art { min-height: 190px; }
+      .panel-body { padding: 18px; }
     }
   </style>
 </head>
 <body>
   <header>
     <div class="wrap topbar">
-      <h1>One Week CMS Scraper</h1>
+      <a class="brand" href="/" aria-label="iSchool CMS tools home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>iSchool</span>
+        <span class="brand-subtitle">CMS Tools</span>
+      </a>
       <div class="status-pill" id="state">Ready</div>
     </div>
   </header>
 
   <main class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">CMS CONTENT TOOL</span>
+        <h1>One Week CMS Scraper</h1>
+        <p>Collect a full week of CMS pages, keep the readable text, and download the original HTML in one organized folder.</p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 430 300" role="img">
+          <path d="M42 88c0-13 11-24 24-24h111l27 30h160c13 0 24 11 24 24v123c0 13-11 24-24 24H66c-13 0-24-11-24-24V88Z" fill="#FFD700"/>
+          <path d="M42 116h346v125c0 13-11 24-24 24H66c-13 0-24-11-24-24V116Z" fill="#FFF7D1" stroke="#043FAD" stroke-width="9" stroke-linejoin="round"/>
+          <rect x="111" y="40" width="202" height="160" rx="22" fill="#fff" stroke="#043FAD" stroke-width="9"/>
+          <path d="M147 83h129M147 114h98" stroke="#05ACFF" stroke-width="12" stroke-linecap="round"/>
+          <circle cx="315" cy="213" r="59" fill="#0669EA"/>
+          <path d="M315 174v66m0 0-28-28m28 28 28-28" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="80" cy="61" r="25" fill="#fff"/>
+          <path d="M68 61h24M80 49v24" stroke="#0669EA" stroke-width="8" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </section>
+
     <div class="grid">
       <section class="panel">
         <div class="panel-body stack">
+          <div class="panel-heading">
+            <span class="step-number">01</span>
+            <div>
+              <h2>Add CMS pages</h2>
+              <p>Paste the links for one teaching week.</p>
+            </div>
+          </div>
           <label>
             Week folder name
             <input id="weekName" value="week-1" autocomplete="off">
@@ -381,7 +579,13 @@
       <section class="panel">
         <div class="panel-body">
           <div class="results-head">
-            <h2>Scraped Text</h2>
+            <div class="panel-heading">
+              <span class="step-number">02</span>
+              <div>
+                <h2>Scraped content</h2>
+                <p>Review, copy, or download your results.</p>
+              </div>
+            </div>
             <div class="summary" id="summary">No results yet</div>
           </div>
 

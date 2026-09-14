@@ -5,6 +5,11 @@ const path = require("path");
 const CMS_HOST = "cms.apps.ischooltech.com";
 const PORT = Number(process.env.PORT || 10000);
 const INDEX_PATH = path.join(__dirname, "index.html");
+const FONT_PATHS = new Map([
+  ["/assets/fonts/SomarRounded-Regular.ttf", path.join(__dirname, "assets", "fonts", "SomarRounded-Regular.ttf")],
+  ["/assets/fonts/SomarRounded-SemiBold.ttf", path.join(__dirname, "assets", "fonts", "SomarRounded-SemiBold.ttf")],
+  ["/assets/fonts/SomarRounded-Bold.ttf", path.join(__dirname, "assets", "fonts", "SomarRounded-Bold.ttf")]
+]);
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -12,6 +17,10 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
       return send(res, 200, fs.readFileSync(INDEX_PATH), "text/html; charset=utf-8");
+    }
+
+    if (req.method === "GET" && FONT_PATHS.has(url.pathname)) {
+      return send(res, 200, fs.readFileSync(FONT_PATHS.get(url.pathname)), "font/ttf");
     }
 
     if (req.method === "GET" && url.pathname === "/health") {
