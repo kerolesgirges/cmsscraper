@@ -387,6 +387,7 @@
 
           <div class="toolbar" style="margin-bottom: 14px;">
             <button class="success" id="downloadAllBtn" type="button" disabled>Download Combined TXT</button>
+            <button class="success" id="downloadHtmlFilesBtn" type="button" disabled>Download All HTML Files</button>
             <button id="copyAllBtn" type="button" disabled>Copy Combined Text</button>
           </div>
 
@@ -408,6 +409,7 @@
       results: document.getElementById("results"),
       summary: document.getElementById("summary"),
       downloadAllBtn: document.getElementById("downloadAllBtn"),
+      downloadHtmlFilesBtn: document.getElementById("downloadHtmlFilesBtn"),
       copyAllBtn: document.getElementById("copyAllBtn"),
       addPastedBtn: document.getElementById("addPastedBtn"),
       pasteUrl: document.getElementById("pasteUrl"),
@@ -563,8 +565,8 @@
       return "# " + week + "\n\n" + successful.map(item => item.body).join("\n\n");
     }
 
-    function downloadText(filename, text) {
-      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    function downloadFile(filename, content, type) {
+      const blob = new Blob([content], { type });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -575,6 +577,14 @@
       setTimeout(() => URL.revokeObjectURL(url), 500);
     }
 
+    function downloadText(filename, text) {
+      downloadFile(filename, text, "text/plain;charset=utf-8");
+    }
+
+    function downloadHtml(filename, html) {
+      downloadFile(filename, html, "text/html;charset=utf-8");
+    }
+
     function render() {
       const ok = state.items.filter(item => item.ok).length;
       const fail = state.items.length - ok;
@@ -582,6 +592,7 @@
         ? ok + " saved, " + fail + " failed"
         : "No results yet";
       els.downloadAllBtn.disabled = ok === 0;
+      els.downloadHtmlFilesBtn.disabled = !state.items.some(item => item.ok && typeof item.html === "string");
       els.copyAllBtn.disabled = ok === 0;
 
       if (!state.items.length) {
@@ -631,6 +642,14 @@
           btn.addEventListener("click", () => {
             downloadText(item.filename, item.body);
           });
+          const htmlBtn = document.createElement("button");
+          htmlBtn.type = "button";
+          htmlBtn.className = "small";
+          htmlBtn.textContent = "Download HTML";
+          htmlBtn.disabled = typeof item.html !== "string";
+          htmlBtn.addEventListener("click", () => {
+            downloadHtml(item.htmlFilename, item.html);
+          });
           const copy = document.createElement("button");
           copy.type = "button";
           copy.className = "small";
@@ -640,7 +659,7 @@
             els.state.textContent = "Copied";
             setTimeout(() => { els.state.textContent = "Ready"; }, 900);
           });
-          actions.append(btn, copy);
+          actions.append(btn, htmlBtn, copy);
           body.append(actions);
         } else {
           const actions = document.createElement("div");
@@ -666,13 +685,16 @@
       const parsed = extractCmsText(html, url);
       const topic = topicFromUrl(url);
       const filename = cleanSegment(topic) + ".txt";
+      const htmlFilename = cleanSegment(topic) + ".html";
       state.items.push({
         ok: true,
         url,
         topic,
         filename,
+        htmlFilename,
         title: parsed.title,
         body: parsed.body,
+        html,
         chars: parsed.text.length
       });
       render();
@@ -684,8 +706,10 @@
         url: item.url,
         topic: item.topic || topicFromUrl(item.url),
         filename: item.filename || (topicFromUrl(item.url) + ".txt"),
+        htmlFilename: item.htmlFilename || (topicFromUrl(item.url) + ".html"),
         title: item.title || "",
         body: item.body || "",
+        html: typeof item.html === "string" ? item.html : null,
         chars: item.chars || 0
       });
       render();
@@ -756,8 +780,8 @@
 
     els.addPastedBtn.addEventListener("click", () => {
       const url = els.pasteUrl.value.trim();
-      const html = els.pastedHtml.value.trim();
-      if (!/^https?:\/\//i.test(url) || !html) {
+      const html = els.pastedHtml.value;
+      if (!/^https?:\/\//i.test(url) || !html.trim()) {
         els.state.textContent = "Missing data";
         return;
       }
@@ -770,6 +794,13 @@
     els.downloadAllBtn.addEventListener("click", () => {
       const week = cleanSegment(els.weekName.value || "week");
       downloadText(week + "-cms-scrape.txt", combinedText());
+    });
+
+    els.downloadHtmlFilesBtn.addEventListener("click", () => {
+      const successful = state.items.filter(item => item.ok && typeof item.html === "string");
+      successful.forEach((item, index) => {
+        setTimeout(() => downloadHtml(item.htmlFilename, item.html), index * 150);
+      });
     });
 
     els.copyAllBtn.addEventListener("click", async () => {
