@@ -536,7 +536,7 @@
           <label>
             PDF pages to export
             <input id="pdfPages" value="all" inputmode="numeric" placeholder="all or 1-3,5" aria-describedby="pdfPagesHint">
-            <span class="meta" id="pdfPagesHint">Use “all”, one page, or comma-separated ranges such as 1-3,5.</span>
+            <span class="meta" id="pdfPagesHint">Use “all”, one page, or ranges such as 1-3,5. PDF captures the visual layout; HTML keeps interactive activities.</span>
           </label>
 
           <label>
@@ -597,7 +597,7 @@
 
           <div class="toolbar" style="margin-bottom: 14px;">
             <button class="success" id="downloadAllBtn" type="button" disabled>Download Combined TXT</button>
-            <button class="success" id="downloadHtmlFilesBtn" type="button" disabled>Download HTML Folder (.zip)</button>
+            <button class="success" id="downloadHtmlFilesBtn" type="button" disabled>Download Interactive HTML Folder (.zip)</button>
             <button id="copyAllBtn" type="button" disabled>Copy Combined Text</button>
           </div>
 
@@ -806,8 +806,22 @@
       downloadFile(filename, text, "text/plain;charset=utf-8");
     }
 
-    function downloadHtml(filename, html) {
-      downloadFile(filename, html, "text/html;charset=utf-8");
+    function interactiveHtml(html, sourceUrl) {
+      if (/<base\b/i.test(html)) return html;
+      const escapedUrl = String(sourceUrl)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      const base = '<base href="' + escapedUrl + '">';
+      if (/<head\b[^>]*>/i.test(html)) {
+        return html.replace(/<head\b[^>]*>/i, match => match + "\n" + base);
+      }
+      return base + "\n" + html;
+    }
+
+    function downloadHtml(filename, html, sourceUrl) {
+      downloadFile(filename, interactiveHtml(html, sourceUrl), "text/html;charset=utf-8");
     }
 
     function pdfPageRanges() {
@@ -825,31 +839,21 @@
       return value.replace(/\s+/g, "");
     }
 
-    async function downloadPdf(item, button) {
-      const originalText = button.textContent;
+    function downloadPdf(item) {
       try {
         const pages = pdfPageRanges();
-        button.disabled = true;
-        button.textContent = "Creating PDF…";
-        els.state.textContent = "Rendering PDF";
-        const response = await fetch("/cms-pdf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: item.url, pages })
-        });
-        if (!response.ok) {
-          const type = response.headers.get("content-type") || "";
-          const details = type.includes("application/json") ? await response.json() : { error: await response.text() };
-          throw new Error(details.error || ("PDF export failed with HTTP " + response.status + "."));
-        }
-        downloadFile(item.pdfFilename, await response.blob(), "application/pdf");
-        els.state.textContent = "PDF ready";
+        const params = new URLSearchParams({ url: item.url, pages });
+        const link = document.createElement("a");
+        link.href = "/cms-pdf?" + params.toString();
+        link.download = item.pdfFilename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        els.state.textContent = "PDF export started";
+        setTimeout(() => { els.state.textContent = "Ready"; }, 1600);
       } catch (error) {
         els.state.textContent = "PDF failed";
         window.alert(error && error.message ? error.message : String(error));
-      } finally {
-        button.disabled = false;
-        button.textContent = originalText;
         setTimeout(() => { els.state.textContent = "Ready"; }, 1200);
       }
     }
@@ -996,16 +1000,16 @@
           const htmlBtn = document.createElement("button");
           htmlBtn.type = "button";
           htmlBtn.className = "small";
-          htmlBtn.textContent = "Download HTML";
+          htmlBtn.textContent = "Download Interactive HTML";
           htmlBtn.disabled = typeof item.html !== "string";
           htmlBtn.addEventListener("click", () => {
-            downloadHtml(item.htmlFilename, item.html);
+            downloadHtml(item.htmlFilename, item.html, item.url);
           });
           const pdfBtn = document.createElement("button");
           pdfBtn.type = "button";
           pdfBtn.className = "small";
           pdfBtn.textContent = "Download PDF";
-          pdfBtn.addEventListener("click", () => downloadPdf(item, pdfBtn));
+          pdfBtn.addEventListener("click", () => downloadPdf(item));
           const copy = document.createElement("button");
           copy.type = "button";
           copy.className = "small";
@@ -1161,7 +1165,7 @@
       const used = new Set();
       const files = successful.map(item => ({
         name: week + "/" + uniqueFilename(item.htmlFilename, used),
-        content: item.html
+        content: interactiveHtml(item.html, item.url)
       }));
       downloadFile(week + "-cms-html.zip", createZip(files), "application/zip");
     });

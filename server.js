@@ -1,7 +1,7 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
-const { createCmsPdf } = require("./lib/cms-pdf");
+const { contentDisposition, createCmsPdf, pdfFilename } = require("./lib/cms-pdf");
 const { streamBuffer } = require("./lib/stream-response");
 
 const CMS_HOST = "cms.apps.ischooltech.com";
@@ -51,12 +51,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "POST" && url.pathname === "/cms-pdf") {
-      const body = await readJson(req);
-      const result = await createCmsPdf(body.url, body.pages);
+    if ((req.method === "GET" || req.method === "POST") && url.pathname === "/cms-pdf") {
+      const input = req.method === "GET"
+        ? Object.fromEntries(url.searchParams.entries())
+        : await readJson(req);
+      const result = await createCmsPdf(input.url, input.pages);
       res.writeHead(200, {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "attachment; filename=\"cms-page.pdf\"",
+        "Content-Disposition": contentDisposition(pdfFilename(result.title)),
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff"
       });
