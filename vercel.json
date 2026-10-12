@@ -7,6 +7,15 @@
     {
       "source": "/health",
       "destination": "/api/health"
+    },
+    {
+      "source": "/cms-pdf",
+      "destination": "/api/pdf"
     }
-  ]
+  ],
+  "functions": {
+    "api/pdf.js": {
+      "maxDuration": 300
+    }
+  }
 }

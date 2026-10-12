@@ -1,6 +1,8 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const { createCmsPdf } = require("./lib/cms-pdf");
+const { streamBuffer } = require("./lib/stream-response");
 
 const CMS_HOST = "cms.apps.ischooltech.com";
 const PORT = Number(process.env.PORT || 10000);
@@ -40,7 +42,26 @@ const server = http.createServer(async (req, res) => {
       if (!cms.ok) {
         return json(res, cms.status, { ok: false, error: `CMS returned HTTP ${cms.status}.` });
       }
-      return json(res, 200, { ok: true, url: cmsUrl.href, html });
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff"
+      });
+      await streamBuffer(res, JSON.stringify({ ok: true, url: cmsUrl.href, html }));
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/cms-pdf") {
+      const body = await readJson(req);
+      const result = await createCmsPdf(body.url, body.pages);
+      res.writeHead(200, {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "attachment; filename=\"cms-page.pdf\"",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff"
+      });
+      await streamBuffer(res, result.buffer);
+      return;
     }
 
     return json(res, 404, { ok: false, error: "Not found." });

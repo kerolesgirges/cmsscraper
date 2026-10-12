@@ -502,7 +502,7 @@
       <div class="hero-copy">
         <span class="eyebrow">CMS CONTENT TOOL</span>
         <h1>One Week CMS Scraper</h1>
-        <p>Collect a full week of CMS pages, keep the readable text, and download the original HTML in one organized folder.</p>
+        <p>Collect a full week of CMS pages, keep the readable text, and export the original HTML or a faithful PDF.</p>
       </div>
       <div class="hero-art" aria-hidden="true">
         <svg viewBox="0 0 430 300" role="img">
@@ -531,6 +531,12 @@
           <label>
             Week folder name
             <input id="weekName" value="week-1" autocomplete="off">
+          </label>
+
+          <label>
+            PDF pages to export
+            <input id="pdfPages" value="all" inputmode="numeric" placeholder="all or 1-3,5" aria-describedby="pdfPagesHint">
+            <span class="meta" id="pdfPagesHint">Use “all”, one page, or comma-separated ranges such as 1-3,5.</span>
           </label>
 
           <label>
@@ -605,6 +611,7 @@
     const els = {
       state: document.getElementById("state"),
       weekName: document.getElementById("weekName"),
+      pdfPages: document.getElementById("pdfPages"),
       links: document.getElementById("links"),
       scrapeBtn: document.getElementById("scrapeBtn"),
       clearBtn: document.getElementById("clearBtn"),
@@ -803,6 +810,50 @@
       downloadFile(filename, html, "text/html;charset=utf-8");
     }
 
+    function pdfPageRanges() {
+      const value = els.pdfPages.value.trim().toLowerCase();
+      if (!value || value === "all") return "all";
+      if (!/^\d+(?:-\d+)?(?:\s*,\s*\d+(?:-\d+)?)*$/.test(value)) {
+        throw new Error("Enter all, one page, or ranges such as 1-3,5.");
+      }
+      for (const part of value.split(",")) {
+        const [start, end = start] = part.trim().split("-").map(Number);
+        if (start < 1 || end < start || end > 1000) {
+          throw new Error("PDF ranges must start at 1 and run forwards.");
+        }
+      }
+      return value.replace(/\s+/g, "");
+    }
+
+    async function downloadPdf(item, button) {
+      const originalText = button.textContent;
+      try {
+        const pages = pdfPageRanges();
+        button.disabled = true;
+        button.textContent = "Creating PDF…";
+        els.state.textContent = "Rendering PDF";
+        const response = await fetch("/cms-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: item.url, pages })
+        });
+        if (!response.ok) {
+          const type = response.headers.get("content-type") || "";
+          const details = type.includes("application/json") ? await response.json() : { error: await response.text() };
+          throw new Error(details.error || ("PDF export failed with HTTP " + response.status + "."));
+        }
+        downloadFile(item.pdfFilename, await response.blob(), "application/pdf");
+        els.state.textContent = "PDF ready";
+      } catch (error) {
+        els.state.textContent = "PDF failed";
+        window.alert(error && error.message ? error.message : String(error));
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+        setTimeout(() => { els.state.textContent = "Ready"; }, 1200);
+      }
+    }
+
     function crc32(bytes) {
       let crc = 0xffffffff;
       for (const byte of bytes) {
@@ -950,6 +1001,11 @@
           htmlBtn.addEventListener("click", () => {
             downloadHtml(item.htmlFilename, item.html);
           });
+          const pdfBtn = document.createElement("button");
+          pdfBtn.type = "button";
+          pdfBtn.className = "small";
+          pdfBtn.textContent = "Download PDF";
+          pdfBtn.addEventListener("click", () => downloadPdf(item, pdfBtn));
           const copy = document.createElement("button");
           copy.type = "button";
           copy.className = "small";
@@ -959,7 +1015,7 @@
             els.state.textContent = "Copied";
             setTimeout(() => { els.state.textContent = "Ready"; }, 900);
           });
-          actions.append(btn, htmlBtn, copy);
+          actions.append(btn, htmlBtn, pdfBtn, copy);
           body.append(actions);
         } else {
           const actions = document.createElement("div");
@@ -986,12 +1042,14 @@
       const topic = topicFromUrl(url);
       const filename = cleanSegment(topic) + ".txt";
       const htmlFilename = safeFilename(parsed.title, topic) + ".html";
+      const pdfFilename = safeFilename(parsed.title, topic) + ".pdf";
       state.items.push({
         ok: true,
         url,
         topic,
         filename,
         htmlFilename,
+        pdfFilename,
         title: parsed.title,
         body: parsed.body,
         html,
@@ -1007,6 +1065,7 @@
         topic: item.topic || topicFromUrl(item.url),
         filename: item.filename || (topicFromUrl(item.url) + ".txt"),
         htmlFilename: item.htmlFilename || (topicFromUrl(item.url) + ".html"),
+        pdfFilename: item.pdfFilename || safeFilename(item.title, topicFromUrl(item.url)) + ".pdf",
         title: item.title || "",
         body: item.body || "",
         html: typeof item.html === "string" ? item.html : null,

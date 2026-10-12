@@ -1,4 +1,5 @@
 const CMS_HOST = "cms.apps.ischooltech.com";
+const { streamBuffer } = require("../lib/stream-response");
 
 module.exports = async function handler(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -29,7 +30,11 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(200).json({ ok: true, url: cmsUrl.href, html });
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Cache-Control", "private, no-store");
+    res.status(200);
+    await streamBuffer(res, JSON.stringify({ ok: true, url: cmsUrl.href, html }));
+    return;
   } catch (error) {
     return res.status(500).json({
       ok: false,
