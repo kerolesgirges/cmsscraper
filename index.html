@@ -540,6 +540,12 @@
           </label>
 
           <label>
+            HTML pages to export
+            <input id="htmlPages" value="all" inputmode="numeric" placeholder="all or 1-3,5" aria-describedby="htmlPagesHint">
+            <span class="meta" id="htmlPagesHint">Choose the CMS page numbers to keep in individual HTML files and the HTML ZIP.</span>
+          </label>
+
+          <label>
             CMS links
             <textarea id="links" spellcheck="false" placeholder="https://cms.apps.ischooltech.com/.../t1&#10;https://cms.apps.ischooltech.com/.../t2"></textarea>
           </label>
@@ -612,6 +618,7 @@
       state: document.getElementById("state"),
       weekName: document.getElementById("weekName"),
       pdfPages: document.getElementById("pdfPages"),
+      htmlPages: document.getElementById("htmlPages"),
       links: document.getElementById("links"),
       scrapeBtn: document.getElementById("scrapeBtn"),
       clearBtn: document.getElementById("clearBtn"),
@@ -806,18 +813,54 @@
       downloadFile(filename, text, "text/plain;charset=utf-8");
     }
 
-    function interactiveHtml(html, sourceUrl) {
-      if (/<base\b/i.test(html)) return html;
-      const escapedUrl = String(sourceUrl)
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-      const base = '<base href="' + escapedUrl + '">';
-      if (/<head\b[^>]*>/i.test(html)) {
-        return html.replace(/<head\b[^>]*>/i, match => match + "\n" + base);
+    function normalizedPageRanges(input, label) {
+      const value = input.value.trim().toLowerCase();
+      if (!value || value === "all") return "all";
+      if (!/^\d+(?:-\d+)?(?:\s*,\s*\d+(?:-\d+)?)*$/.test(value)) {
+        throw new Error("Enter all, one page, or ranges such as 1-3,5 for " + label + ".");
       }
-      return base + "\n" + html;
+      for (const part of value.split(",")) {
+        const [start, end = start] = part.trim().split("-").map(Number);
+        if (start < 1 || end < start || end > 1000) {
+          throw new Error(label + " ranges must start at 1 and run forwards.");
+        }
+      }
+      return value.replace(/\s+/g, "");
+    }
+
+    function selectedPageNumbers(value, total, label) {
+      if (value === "all") return null;
+      const selected = new Set();
+      for (const part of value.split(",")) {
+        const [start, end = start] = part.split("-").map(Number);
+        if (end > total) {
+          throw new Error(label + " has " + total + " pages; page " + end + " is outside that range.");
+        }
+        for (let page = start; page <= end; page += 1) selected.add(page);
+      }
+      return selected;
+    }
+
+    function interactiveHtml(html, sourceUrl) {
+      const pageRanges = normalizedPageRanges(els.htmlPages, "HTML");
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const pages = Array.from(doc.querySelectorAll("section.page"));
+      if (!pages.length && pageRanges !== "all") {
+        throw new Error("This CMS page does not expose numbered HTML page sections.");
+      }
+      const selected = selectedPageNumbers(pageRanges, pages.length, "This HTML file");
+      if (selected) {
+        pages.forEach((page, index) => {
+          if (!selected.has(index + 1)) page.remove();
+        });
+      }
+
+      if (!doc.querySelector("base")) {
+        const base = doc.createElement("base");
+        base.href = sourceUrl;
+        (doc.head || doc.documentElement).prepend(base);
+      }
+      return "<!doctype html>\n" + doc.documentElement.outerHTML;
     }
 
     function downloadHtml(filename, html, sourceUrl) {
@@ -825,18 +868,7 @@
     }
 
     function pdfPageRanges() {
-      const value = els.pdfPages.value.trim().toLowerCase();
-      if (!value || value === "all") return "all";
-      if (!/^\d+(?:-\d+)?(?:\s*,\s*\d+(?:-\d+)?)*$/.test(value)) {
-        throw new Error("Enter all, one page, or ranges such as 1-3,5.");
-      }
-      for (const part of value.split(",")) {
-        const [start, end = start] = part.trim().split("-").map(Number);
-        if (start < 1 || end < start || end > 1000) {
-          throw new Error("PDF ranges must start at 1 and run forwards.");
-        }
-      }
-      return value.replace(/\s+/g, "");
+      return normalizedPageRanges(els.pdfPages, "PDF");
     }
 
     function downloadPdf(item) {
@@ -1003,7 +1035,13 @@
           htmlBtn.textContent = "Download Interactive HTML";
           htmlBtn.disabled = typeof item.html !== "string";
           htmlBtn.addEventListener("click", () => {
-            downloadHtml(item.htmlFilename, item.html, item.url);
+            try {
+              downloadHtml(item.htmlFilename, item.html, item.url);
+              els.state.textContent = "HTML ready";
+              setTimeout(() => { els.state.textContent = "Ready"; }, 1000);
+            } catch (error) {
+              window.alert(error && error.message ? error.message : String(error));
+            }
           });
           const pdfBtn = document.createElement("button");
           pdfBtn.type = "button";
@@ -1160,14 +1198,18 @@
     });
 
     els.downloadHtmlFilesBtn.addEventListener("click", () => {
-      const week = cleanSegment(els.weekName.value || "week");
-      const successful = state.items.filter(item => item.ok && typeof item.html === "string");
-      const used = new Set();
-      const files = successful.map(item => ({
-        name: week + "/" + uniqueFilename(item.htmlFilename, used),
-        content: interactiveHtml(item.html, item.url)
-      }));
-      downloadFile(week + "-cms-html.zip", createZip(files), "application/zip");
+      try {
+        const week = cleanSegment(els.weekName.value || "week");
+        const successful = state.items.filter(item => item.ok && typeof item.html === "string");
+        const used = new Set();
+        const files = successful.map(item => ({
+          name: week + "/" + uniqueFilename(item.htmlFilename, used),
+          content: interactiveHtml(item.html, item.url)
+        }));
+        downloadFile(week + "-cms-html.zip", createZip(files), "application/zip");
+      } catch (error) {
+        window.alert(error && error.message ? error.message : String(error));
+      }
     });
 
     els.copyAllBtn.addEventListener("click", async () => {
